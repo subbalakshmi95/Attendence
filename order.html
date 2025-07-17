@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Order System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #f8f9fa;
+        }
+        
+        .hall-section {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+        
+        .food-card {
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            background: white;
+            height: 100%;
+            width: 100%;
+        }
+        
+        .food-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .food-image {
+            height: 200px;
+            object-fit: cover;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .recipe-badge {
+            background: rgba(13, 110, 253, 0.1);
+            color: var(--primary-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 0.25rem;
+            display: inline-block;
+        }
+        
+        .cart-section {
+            position: sticky;
+            top: 20px;
+        }
+        
+        .table-info {
+            background: rgba(13, 110, 253, 0.05);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .drink-option {
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .drink-option.selected {
+            border-color: var(--primary-color);
+            background: rgba(13, 110, 253, 0.05);
+        }
+        
+        .quantity-input {
+            outline: none;
+            text-align: center;
+        }
+        
+        .nav-tabs .nav-link {
+            border-radius: 15px;
+            margin-right: 10px;
+            color: #495057;
+            border: none;
+            padding: 10px 20px;
+        }
+
+        .nav-tabs .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+
+        .tab-content {
+            padding-top: 2rem;
+        }
+
+        /* Search Related Styles */
+        #searchInput:focus {
+            box-shadow: none;
+            border-color: #dee2e6;
+        }
+        
+        .search-result-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .search-result-item:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+        
+        .search-highlight {
+            background-color: rgba(13, 110, 253, 0.1);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+        }
+        
+        .search-category {
+            font-size: 0.8rem;
+            color: #6c757d;
+            background-color: #f8f9fa;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+        }
+        
+        .no-results-found {
+            padding: 2rem;
+            text-align: center;
+            color: #6c757d;
+        }
+        .input-group {
+            width: 63%;
+        }
+
+    </style>
+</head>
+<body class="bg-light">
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="orderToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Order Status</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+    <div class="container py-5">
+        <div class="row">
+            <!-- Menu Section -->
+            <div class="col-lg-8">
+                <h1 class="mb-4">Restaurant Orders</h1>
+                
+                <div class="mb-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-primary"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control border-start-0 ps-0" 
+                               id="searchInput" 
+                               placeholder="Search for dishes, ingredients, or categories..."
+                               onkeyup="searchFood()"
+                               autocomplete="off">
+                        <button class="btn btn-outline-secondary border-start-0 bg-white" 
+                                type="button"
+                                onclick="clearSearch()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="searchResults" class="position-absolute bg-white rounded-3 shadow-lg mt-1 d-none" 
+                         style=" z-index: 1000;">
+                    </div>
+                </div>
+                
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs mb-4" id="menuTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="junior-tab" data-bs-toggle="tab" 
+                                data-bs-target="#junior" type="button" role="tab">
+                           Food
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="deluxe-tab" data-bs-toggle="tab" 
+                                data-bs-target="#deluxe" type="button" role="tab">
+                            Drinks
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="desserts-tab" data-bs-toggle="tab" 
+                                data-bs-target="#desserts" type="button" role="tab">
+                            Desserts
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="menuTabsContent">
+                    <!-- Junior Suites Tab -->
+                    <div class="tab-pane fade show active" id="junior" role="tabpanel">
+                        <div class="hall-section p-4">
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/3.png" alt="Stuffed Bell Peppers" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Stuffed Bell Peppers</h4>
+                                            <div class="mb-3">
+                                                <!-- <span class="recipe-badge">Table 01</span> -->
+                                                <span class="recipe-badge">Price: ₹12.99</span>
+                                            </div>
+                                            <p class="text-muted">Fresh bell peppers stuffed with seasoned rice and vegetables</p>
+                                            <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity1', -1)">-</button>
+                                                <input type="number" id="quantity1" class="form-control mx-2" value="1" min="1" style="width: 60px">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity1', 1)">+</button>
+                                            </div>
+                                            <button class="btn btn-primary " onclick="addToCart('Stuffed Bell Peppers', 1, 12.99, 'quantity1')">
+                                                Add <i class="fas fa-plus ms-2"></i>
+                                            </button></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/4.png" alt="Grilled Panini" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Grilled Panini</h4>
+                                            <div class="mb-3">
+                                                <!-- <span class="recipe-badge">Table 02</span> -->
+                                                <span class="recipe-badge">Price: ₹12.99</span>
+                                            </div>
+                                            <p class="text-muted">Italian-style grilled sandwich with premium ingredients</p>
+                                            <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity2', -1)">-</button>
+                                                <input type="number" id="quantity2" class="form-control mx-2" value="1" min="1" style="width: 60px">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity2', 1)">+</button>
+                                            </div>
+                                            <button class="btn btn-primary " onclick="addToCart('Grilled Panini', 2, 12.99, 'quantity2')">
+                                                Add <i class="fas fa-plus ms-2"></i>
+                                            </button></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/dr1.jpg" alt="Roasted Vegetables" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Roasted Vegetables</h4>
+                                            <div class="mb-3">
+                                                <!-- <span class="recipe-badge">Table 03</span> -->
+                                                <span class="recipe-badge">price:₹12.99</span>
+                                            </div>
+                                            <p class="text-muted">Seasonal vegetables roasted with herbs and olive oil</p>
+                                            <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity3', -1)">-</button>
+                                                <input type="number" id="quantity3" class="form-control mx-2" value="1" min="1" style="width: 60px">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity3', 1)">+</button>
+                                            </div>
+                                            <button class="btn btn-primary " onclick="addToCart('Roasted Vegetables', 3, 12.99, 'quantity3')">
+                                                Add <i class="fas fa-plus ms-2"></i>
+                                            </button></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/dr1.jpg" alt="Roasted Vegetables" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Roasted Vegetables</h4>
+                                            <div class="mb-3">
+                                                <!-- <span class="recipe-badge">Table 03</span> -->
+                                                <span class="recipe-badge">price:₹12.99</span>
+                                            </div>
+                                            <p class="text-muted">Seasonal vegetables roasted with herbs and olive oil</p>
+                                            <div class="d-flex align-items-center justify-content-between ">
+                                            <div class="d-flex align-items-center">
+                                                <button class="btn btn-outline-secondary btn-sm" 
+                                                        onclick="adjustQuantity('roastedVegQuantity', -1)">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                <input type="number" 
+                                                       id="roastedVegQuantity" 
+                                                       class="form-control mx-2" 
+                                                       value="1" 
+                                                       min="1" 
+                                                       style="width: 60px"
+                                                       onchange="validateQuantity(this)">
+                                                <button class="btn btn-outline-secondary btn-sm" 
+                                                        onclick="adjustQuantity('roastedVegQuantity', 1)">
+                                                    <i class="fas fa-plus"></i>
+                                                </button></div>
+                                            
+                                            <button class="btn btn-primary" 
+                                                    onclick="addToCart('Roasted Vegetables', 4, 12.99, 'roastedVegQuantity')">
+                                                Add <i class="fas fa-plus ms-2"></i>
+                                            </button></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/dr1.jpg" alt="Roasted Vegetables" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Roasted Vegetables</h4>
+                                            <div class="mb-3">
+                                                <!-- <span class="recipe-badge">Table 03</span> -->
+                                                <span class="recipe-badge">price:₹12.99</span>
+                                            </div>
+                                            <p class="text-muted">Seasonal vegetables roasted with herbs and olive oil</p>
+                                            <div class="d-flex align-items-center justify-content-between ">
+                                            <div class="d-flex align-items-center">
+                                                <button class="btn btn-outline-secondary btn-sm" 
+                                                        onclick="adjustQuantity('roastedVegQuantity', -1)">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                <input type="number" 
+                                                       id="roastedVegQuantity" 
+                                                       class="form-control mx-2" 
+                                                       value="1" 
+                                                       min="1" 
+                                                       style="width: 60px"
+                                                       onchange="validateQuantity(this)">
+                                                <button class="btn btn-outline-secondary btn-sm" 
+                                                        onclick="adjustQuantity('roastedVegQuantity', 1)">
+                                                    <i class="fas fa-plus"></i>
+                                                </button></div>
+                                            
+                                            <button class="btn btn-primary" 
+                                                    onclick="addToCart('Roasted Vegetables', 4, 12.99, 'roastedVegQuantity')">
+                                                Add <i class="fas fa-plus ms-2"></i>
+                                            </button></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/11.png" alt="Roasted Vegetables" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Roasted Vegetables</h4>
+                                            <div class="mb-3">
+                                                <!-- <span class="recipe-badge">Table 03</span> -->
+                                                <span class="recipe-badge">price:₹12.99</span>
+                                            </div>
+                                            <p class="text-muted">Seasonal vegetables roasted with herbs and olive oil</p>
+                                            <div class="d-flex align-items-center justify-content-between ">
+                                            <div class="d-flex align-items-center">
+                                                <button class="btn btn-outline-secondary btn-sm" 
+                                                        onclick="adjustQuantity('roastedVegQuantity', -1)">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                <input type="number" 
+                                                       id="roastedVegQuantity" 
+                                                       class="form-control mx-2" 
+                                                       value="1" 
+                                                       min="1" 
+                                                       style="width: 60px"
+                                                       onchange="validateQuantity(this)">
+                                                <button class="btn btn-outline-secondary btn-sm" 
+                                                        onclick="adjustQuantity('roastedVegQuantity', 1)">
+                                                    <i class="fas fa-plus"></i>
+                                                </button></div>
+                                            
+                                            <button class="btn btn-primary" 
+                                                    onclick="addToCart('Roasted Vegetables', 4, 12.99, 'roastedVegQuantity')">
+                                                Add <i class="fas fa-plus ms-2"></i>
+                                            </button></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AC Deluxe Suites Tab -->
+                    <div class="tab-pane fade" id="deluxe" role="tabpanel">
+                        <div class="hall-section p-4">
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/10.png" alt="Bell Peppers" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Bell Peppers Special</h4>
+                                            <div class="mb-3">
+                                                <span class="recipe-badge">Price: ₹12.99</span>
+                                            </div>
+                                            <p class="text-muted">Premium bell peppers prepared with special seasoning</p>
+                                            <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity4', -1)">-</button>
+                                                <input type="number" id="quantity4" class="form-control mx-2" value="1" min="1" style="width: 60px">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity4', 1)">+</button>
+                                            </div>
+                                            <button class="btn btn-primary" onclick="addToCart('Bell Peppers Special', 6, 12.99, 'quantity4')">
+                                                Add <i class="fas fa-plus ms-2"></i>
+                                            </button></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/1.png" alt="Bell Peppers" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Bell Peppers Special</h4>
+                                            <div class="mb-3">
+                                                <span class="recipe-badge">Price: ₹12.99</span>
+                                            </div>
+                                            <p class="text-muted">Premium bell peppers prepared with special seasoning</p>
+                                            <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity4', -1)">-</button>
+                                                <input type="number" id="quantity4" class="form-control mx-2" value="1" min="1" style="width: 60px">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity4', 1)">+</button>
+                                            </div>
+                                            <button class="btn btn-primary" onclick="addToCart('Bell Peppers Special', 6, 12.99, 'quantity4')">
+                                                Add <i class="fas fa-plus ms-2"></i>
+                                            </button></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/12.png" alt="Bell Peppers" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Bell Peppers Special</h4>
+                                            <div class="mb-3">
+                                                <span class="recipe-badge">Price: ₹12.99</span>
+                                            </div>
+                                            <p class="text-muted">Premium bell peppers prepared with special seasoning</p>
+                                            <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity5', -1)">-</button>
+                                                <input type="number" id="quantity5" class="form-control mx-2" value="1" min="1" style="width: 60px">
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('quantity5', 1)">+</button>
+                                          </div>
+                                            <button class="btn btn-primary " onclick="addToCart('Bell Peppers Special', 6, 12.99, 'quantity5')">
+                                                Add <i class="fas fa-plus ms-2"></i>
+                                            </button>  </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Desserts Tab -->
+                    <div class="tab-pane fade" id="desserts" role="tabpanel">
+                        <div class="hall-section p-4">
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/dr2.jpg" alt="Chocolate Cake" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Chocolate Cake</h4>
+                                            <div class="mb-3">
+                                                <span class="recipe-badge">Price: ₹5.99</span>
+                                            </div>
+                                            <p class="text-muted">Rich and moist chocolate cake topped with creamy frosting</p>
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center">
+                                                    <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('dessertQuantity1', -1)">-</button>
+                                                    <input type="number" id="dessertQuantity1" class="form-control mx-2" value="1" min="1" style="width: 60px">
+                                                    <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('dessertQuantity1', 1)">+</button>
+                                                </div>
+                                                <button class="btn btn-primary" onclick="addToCart('Chocolate Cake', 5, 5.99, 'dessertQuantity1')">
+                                                    Add <i class="fas fa-plus ms-2"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/d1.jpg" alt="Chocolate Cake" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Chocolate Cake</h4>
+                                            <div class="mb-3">
+                                                <span class="recipe-badge">Price: ₹5.99</span>
+                                            </div>
+                                            <p class="text-muted">Rich and moist chocolate cake topped with creamy frosting</p>
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center">
+                                                    <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('dessertQuantity1', -1)">-</button>
+                                                    <input type="number" id="dessertQuantity1" class="form-control mx-2" value="1" min="1" style="width: 60px">
+                                                    <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('dessertQuantity1', 1)">+</button>
+                                                </div>
+                                                <button class="btn btn-primary" onclick="addToCart('Chocolate Cake', 5, 5.99, 'dessertQuantity1')">
+                                                    Add <i class="fas fa-plus ms-2"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="food-card">
+                                        <img src="img/dr1.jpg" alt="Chocolate Cake" class="food-image w-100">
+                                        <div class="p-3">
+                                            <h4>Chocolate Cake</h4>
+                                            <div class="mb-3">
+                                                <span class="recipe-badge">Price: ₹5.99</span>
+                                            </div>
+                                            <p class="text-muted">Rich and moist chocolate cake topped with creamy frosting</p>
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center">
+                                                    <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('dessertQuantity1', -1)">-</button>
+                                                    <input type="number" id="dessertQuantity1" class="form-control mx-2" value="1" min="1" style="width: 60px">
+                                                    <button class="btn btn-outline-secondary btn-sm" onclick="adjustQuantity('dessertQuantity1', 1)">+</button>
+                                                </div>
+                                                <button class="btn btn-primary" onclick="addToCart('Chocolate Cake', 5, 5.99, 'dessertQuantity1')">
+                                                    Add <i class="fas fa-plus ms-2"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Add more dessert items as needed -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart Section -->
+            <div class="col-lg-4">
+                <div class="cart-section">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h3 class="mb-0">Your Order</h3>
+                        </div>
+                        <div class="card-body">
+                            <!-- Customer Information -->
+                            <div class="mb-4">
+                                <h5>Customer Details</h5>
+                                <!-- <input type="text" class="form-control mb-2" placeholder="Your Name">
+                                <input type="tel" class="form-control mb-2" placeholder="Phone Number"> -->
+                                <input type="datetime-local" class="form-control" id="reservationTime">
+                            </div>
+
+                            <!-- Selected Items -->
+                            <div id="cartItems" class="mb-4">
+                                <div class="text-muted text-center py-3">
+                                    No items in cart
+                                </div>
+                            </div>
+
+                            <!-- Add total price display -->
+                            <div class="mb-4">
+                                <h5 class="d-flex justify-content-between">
+                                    Total: <span id="cartTotal">₹0.00</span>
+                                </h5>
+                            </div>
+
+                            <!-- Drinks Selection -->
+                            <div class="mb-4">
+                                <h5>Select Drinks</h5>
+                                <div class="drink-option mb-2" onclick="selectDrink(this)">
+                                    <i class="fas fa-beer me-2"></i> Fruit Beer
+                                </div>
+                                <div class="drink-option mb-2" onclick="selectDrink(this)">
+                                    <i class="fas fa-glass-water me-2"></i> Softdrink
+                                </div>
+                            </div>
+
+                            <!-- Order Button -->
+                            <button class="btn btn-primary" onclick="placeOrder()">
+                                Place Order <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+
+        function validateQuantity(input) {
+            // Ensure the value is at least 1
+            if (input.value < 1 || !input.value) {
+                input.value = 1;
+            }
+        }
+
+        function adjustQuantity(inputId, change) {
+            const input = document.getElementById(inputId);
+            if (input) {
+                const currentValue = parseInt(input.value) || 1;
+                const newValue = Math.max(1, currentValue + change);
+                input.value = newValue;
+            }
+        }
+
+        function showToast(message) {
+            const toastEl = document.getElementById('orderToast');
+            document.getElementById('toastMessage').textContent = message;
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+
+        function addToCart(item, tableNo, price, quantityId) {
+            const quantityInput = document.getElementById(quantityId);
+            if (!quantityInput) {
+                console.error('Quantity input not found');
+                return;
+            }
+
+            const quantity = parseInt(quantityInput.value) || 1;
+            const total = price * quantity;
+
+            cart.push({
+                item: item,
+                tableNo: tableNo,
+                price: price,
+                quantity: quantity,
+                total: total
+            });
+
+            quantityInput.value = 1;
+            updateCart();
+            showToast(`Added ${quantity} ${item}(s) to cart`);
+        }
+
+        function updateCart() {
+            const cartElement = document.getElementById('cartItems');
+            if (cart.length === 0) {
+                cartElement.innerHTML = `
+                    <div class="text-muted text-center py-3">
+                        No items in cart
+                    </div>
+                `;
+                document.getElementById('cartTotal').textContent = '₹0.00';
+                return;
+            }
+
+            cartElement.innerHTML = cart.map((item, index) => `
+                <div class="table-info">
+                    <div class="d-flex align-items-start gap-3">
+                        <img src="img/${getImageFileName(item.item)}" 
+                             alt="${item.item}" 
+                             class="rounded" 
+                             style="width: 60px; height: 60px; object-fit: cover;">
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-0">${item.item}</h6>
+                                    <small class="text-muted">Table ${item.tableNo.toString().padStart(2, '0')}</small>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger" onclick="removeItem(${index})">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <button class="btn btn-sm btn-outline-secondary p-1" 
+                                            style="font-size: 0.7rem; width: 24px; height: 24px;"
+                                            onclick="updateCartQuantity(${index}, -1)">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <span class="px-2">${item.quantity}</span>
+                                    <button class="btn btn-sm btn-outline-secondary p-1" 
+                                            style="font-size: 0.7rem; width: 24px; height: 24px;"
+                                            onclick="updateCartQuantity(${index}, 1)">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <span class="ms-2">× ₹${item.price}</span>
+                                </div>
+                                <div class="mt-1">
+                                    <small>Subtotal: ₹${item.total.toFixed(2)}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Calculate total price
+            const total = cart.reduce((total, item) => total + item.total, 0);
+            document.getElementById('cartTotal').textContent = `₹${total.toFixed(2)}`;
+        }
+
+        // Add this new function to handle quantity updates in cart
+        function updateCartQuantity(index, change) {
+            const item = cart[index];
+            const newQuantity = Math.max(1, item.quantity + change);
+            
+            if (newQuantity !== item.quantity) {
+                item.quantity = newQuantity;
+                item.total = item.price * newQuantity;
+                updateCart();
+            }
+        }
+
+        function removeItem(index) {
+            cart.splice(index, 1);
+            updateCart();
+        }
+
+        function selectDrink(element) {
+            document.querySelectorAll('.drink-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+        }
+
+        function placeOrder() {
+            if (cart.length === 0) {
+                showToast('Please add items to your cart');
+                return;
+            }
+            
+            const name = document.querySelector('input[placeholder="Your Name"]').value;
+            const phone = document.querySelector('input[placeholder="Phone Number"]').value;
+            const time = document.getElementById('reservationTime').value;
+
+            if (!name || !phone || !time) {
+                showToast('Please fill in all customer details');
+                return;
+            }
+
+            showToast('Order placed successfully!');
+            cart = [];
+            updateCart();
+        }
+
+        // Add this helper function to get the correct image filename
+        function getImageFileName(itemName) {
+            // Map item names to their corresponding image files
+            const imageMap = {
+                'Stuffed Bell Peppers': 'd1.jpg',
+                'Grilled Panini': 'dr2.jpg',
+                'Roasted Vegetables': 'dr1.jpg',
+                'Bell Peppers Special': 'd1.jpg'
+                // Add more mappings as needed
+            };
+            
+            return imageMap[itemName] || 'd1.jpg'; // Return default image if not found
+        }
+
+        function searchFood() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const searchResults = document.getElementById('searchResults');
+            const foodCards = document.querySelectorAll('.food-card');
+            
+            // Show/hide clear button based on search input
+            const clearButton = document.querySelector('.btn-outline-secondary');
+            clearButton.style.display = searchTerm ? 'block' : 'none';
+
+            if (!searchTerm) {
+                searchResults.classList.add('d-none');
+                showAllCards(foodCards);
+                return;
+            }
+
+            // Collect all food items data
+            const searchData = [];
+            foodCards.forEach(card => {
+                const name = card.querySelector('h4').textContent;
+                const description = card.querySelector('.text-muted').textContent;
+                const price = card.querySelector('.recipe-badge').textContent;
+                const image = card.querySelector('img').src;
+                
+                if (matchesSearch(name, description, searchTerm)) {
+                    searchData.push({ name, description, price, image });
+                }
+            });
+
+            // Display search results
+            if (searchData.length > 0) {
+                searchResults.classList.remove('d-none');
+                searchResults.innerHTML = searchData.map(item => `
+                    <div class="search-result-item" onclick="scrollToItem('${item.name}')">
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="${item.image}" alt="${item.name}" 
+                                 class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                            <div>
+                                <div class="fw-semibold">${highlightMatch(item.name, searchTerm)}</div>
+                                <div class="small text-muted">${highlightMatch(item.description, searchTerm)}</div>
+                                <div class="mt-1">
+                                    <span class="search-category">${item.price}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                searchResults.classList.remove('d-none');
+                searchResults.innerHTML = `
+                    <div class="no-results-found">
+                        <i class="fas fa-search fa-2x mb-3"></i>
+                        <p class="mb-0">No results found for "${searchTerm}"</p>
+                        <small>Try searching for something else</small>
+                    </div>
+                `;
+            }
+
+            // Filter visible cards
+            filterCards(foodCards, searchTerm);
+        }
+
+        function clearSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const searchResults = document.getElementById('searchResults');
+            const foodCards = document.querySelectorAll('.food-card');
+            
+            searchInput.value = '';
+            searchResults.classList.add('d-none');
+            showAllCards(foodCards);
+        }
+
+        function matchesSearch(name, description, searchTerm) {
+            return name.toLowerCase().includes(searchTerm) || 
+                   description.toLowerCase().includes(searchTerm);
+        }
+
+        function highlightMatch(text, searchTerm) {
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            return text.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+
+        function scrollToItem(itemName) {
+            const element = Array.from(document.querySelectorAll('.food-card'))
+                        .find(card => card.querySelector('h4').textContent === itemName);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.classList.add('highlight-animation');
+                setTimeout(() => element.classList.remove('highlight-animation'), 2000);
+            }
+        }
+
+        function showAllCards(cards) {
+            cards.forEach(card => {
+                card.closest('.col-md-4').style.display = 'block';
+            });
+        }
+
+        function filterCards(cards, searchTerm) {
+            cards.forEach(card => {
+                const name = card.querySelector('h4').textContent.toLowerCase();
+                const description = card.querySelector('.text-muted').textContent.toLowerCase();
+                const matches = matchesSearch(name, description, searchTerm);
+                card.closest('.col-md-4').style.display = matches ? 'block' : 'none';
+            });
+        }
+
+        // Add click event listener to close search results when clicking outside
+        document.addEventListener('click', (e) => {
+            const searchResults = document.getElementById('searchResults');
+            const searchInput = document.getElementById('searchInput');
+            
+            if (!searchResults.contains(e.target) && e.target !== searchInput) {
+                searchResults.classList.add('d-none');
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"></script>
+</body>
+</html>
